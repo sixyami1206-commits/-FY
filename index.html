@@ -92,10 +92,10 @@
         </ul>
       </div>
 
-      <!-- CORS完全回避のための iframe ターゲット指定フォーム -->
-      <iframe name="hidden_iframe" id="hidden_iframe" style="display:none;"></iframe>
+      <!-- 標準フォーム送信（CORS通信エラーを完全回避） -->
+      <form id="bookingForm" method="POST">
+        <input type="hidden" id="redirectUrl" name="redirectUrl">
 
-      <form id="bookingForm" method="POST" target="hidden_iframe">
         <div class="form-group">
           <label>お名前</label>
           <input type="text" id="name" name="name" required placeholder="山田 太郎">
@@ -233,14 +233,13 @@
   </div>
 
 <script>
-  // WebアプリのURL
-  const GAS_URL = "https://script.google.com/macros/s/AKfycbz8evcSgt3-txM-zkKBBcnfEYcYKfbMvwOBTZvG1FKAWoTS4yb8Jth3SYKx87XxKEuKig/exec";
+  // 提供いただいた最新のWebアプリURLを反映
+  const GAS_URL = "https://script.google.com/macros/s/AKfycbzpVEW-hpe0KvTwL95tLKitS0IloZGkv0ToO9uK0DS2wByTh0kpxeKnX_YSTwNI3f6WxA/exec";
+
+  document.getElementById('bookingForm').action = GAS_URL;
+  document.getElementById('redirectUrl').value = window.location.href.split('#')[0];
 
   let allReservations = [];
-  let pendingPayload = null;
-
-  // フォームのactionを設定
-  document.getElementById('bookingForm').action = GAS_URL;
 
   const sidebar = document.getElementById('sidebar');
   const overlay = document.getElementById('overlay');
@@ -251,6 +250,17 @@
   const bookingSection = document.getElementById('bookingSection');
   const mypeSection = document.getElementById('mypeSection');
 
+  function showSection(section) {
+    if (section === 'mype') {
+      bookingSection.style.display = 'none';
+      mypeSection.style.display = 'block';
+      loadSavedTicket();
+    } else {
+      bookingSection.style.display = 'block';
+      mypeSection.style.display = 'none';
+    }
+  }
+
   function toggleMenu(show) {
     sidebar.classList.toggle('open', show);
     overlay.classList.toggle('show', show);
@@ -260,18 +270,8 @@
   closeMenuBtn.addEventListener('click', () => toggleMenu(false));
   overlay.addEventListener('click', () => toggleMenu(false));
 
-  navHome.addEventListener('click', () => {
-    bookingSection.style.display = 'block';
-    mypeSection.style.display = 'none';
-    toggleMenu(false);
-  });
-
-  navMype.addEventListener('click', () => {
-    bookingSection.style.display = 'none';
-    mypeSection.style.display = 'block';
-    loadSavedTicket();
-    toggleMenu(false);
-  });
+  navHome.addEventListener('click', () => { showSection('home'); toggleMenu(false); });
+  navMype.addEventListener('click', () => { showSection('mype'); toggleMenu(false); });
 
   const seatBtns = document.querySelectorAll('.seat-btn');
   const selectedSeatInput = document.getElementById('selectedSeat');
@@ -290,7 +290,7 @@
     });
   });
 
-  // 日付・時間変更時にグレーアウト（無効化）
+  // 日付・時間選択時のグレーアウト処理
   function updateSeatAvailability() {
     const selectedDate = dateInput.value;
     const selectedTime = timeInput.value;
@@ -306,14 +306,12 @@
     allReservations.forEach(res => {
       if (res.date === selectedDate && res.time === selectedTime) {
         const btn = document.querySelector(`.seat-btn[data-seat="${res.seat}"]`);
-        if (btn) {
-          btn.disabled = true;
-        }
+        if (btn) btn.disabled = true;
       }
     });
   }
 
-  // サイト開いた瞬間にJSONP経由でスプレッドシートから読み込み
+  // 初回読み込み（JSONPで取得）
   function fetchReservations() {
     const script = document.createElement('script');
     script.src = `${GAS_URL}?callback=handleGasResponse&_=` + new Date().getTime();
@@ -362,7 +360,6 @@
     document.getElementById('totalPrice').textContent = total;
     document.getElementById('totalPriceInput').value = total;
 
-    // input hidden要素の整形
     document.getElementById('popcorn').value = `${document.getElementById('popcornFlavor').value} (${document.getElementById('popcornSize').value})`;
     document.getElementById('drink').value = `${document.getElementById('drinkMenu').value} (${document.getElementById('drinkSize').value}) ${document.getElementById('drinkRefill').checked ? '+おかわり' : ''}`;
     document.getElementById('gelato').value = `${document.getElementById('gelatoFlavor').value} (${document.getElementById('gelatoSize').value})`;
@@ -374,61 +371,17 @@
     el.addEventListener('change', calculateTotal);
   });
 
-  // 送信直前処理
+  // 送信前チェック
   document.getElementById('bookingForm').addEventListener('submit', (e) => {
     if (!selectedSeatInput.value) {
       e.preventDefault();
       alert("座席を選択してください。");
       return;
     }
-
     calculateTotal();
-
-    const submitBtn = document.getElementById('submitBtn');
-    submitBtn.disabled = true;
-    submitBtn.textContent = "予約処理中...";
-
-    pendingPayload = {
-      name: document.getElementById('name').value,
-      title: document.getElementById('title').value,
-      date: dateInput.value,
-      time: timeInput.value,
-      seat: selectedSeatInput.value,
-      popcorn: document.getElementById('popcorn').value,
-      drink: document.getElementById('drink').value,
-      gelato: document.getElementById('gelato').value,
-      totalPrice: document.getElementById('totalPriceInput').value
-    };
   });
 
-  // iframeからの応答イベントハンドラ（CORS制限なし）
-  window.addEventListener('message', (e) => {
-    const submitBtn = document.getElementById('submitBtn');
-    submitBtn.disabled = false;
-    submitBtn.textContent = "予約を確定する";
-
-    if (e.data === 'SUCCESS') {
-      alert("予約が正常に完了しました！");
-      if (pendingPayload) {
-        localStorage.setItem("cinema_ticket", JSON.stringify(pendingPayload));
-      }
-      fetchReservations();
-      bookingSection.style.display = 'none';
-      mypeSection.style.display = 'block';
-      loadSavedTicket();
-    } 
-    else if (e.data === 'ERROR_DUPLICATED') {
-      // ご指定のエラーメッセージ
-      alert("お客様大変申し訳ございません。現在その席は予約が埋まっております。ほかのお席をお選びください。");
-      fetchReservations();
-    } 
-    else {
-      alert("処理中にエラーが発生しました。もう一度お試しください。");
-      fetchReservations();
-    }
-  });
-
-  // チケット描画
+  // チケット表示・QRコード生成
   function loadSavedTicket() {
     const savedTicket = localStorage.getItem("cinema_ticket");
     const ticketArea = document.getElementById('ticketArea');
@@ -471,6 +424,9 @@
 
   window.addEventListener('DOMContentLoaded', () => {
     fetchReservations();
+    if (window.location.hash === '#mype') {
+      showSection('mype');
+    }
   });
 </script>
 
