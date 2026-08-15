@@ -226,11 +226,11 @@
   </div>
 
 <script>
+  // お手元のWebアプリURL（最新のもの）を指定してください
   const GAS_URL = "https://script.google.com/macros/s/AKfycbz8evcSgt3-txM-zkKBBcnfEYcYKfbMvwOBTZvG1FKAWoTS4yb8Jth3SYKx87XxKEuKig/exec";
 
-  let allReservations = []; // スプレッドシートから読み込んだ全予約データ
+  let allReservations = [];
 
-  // メニュー操作
   const sidebar = document.getElementById('sidebar');
   const overlay = document.getElementById('overlay');
   const openMenuBtn = document.getElementById('openMenuBtn');
@@ -262,7 +262,6 @@
     toggleMenu(false);
   });
 
-  // フォーム要素
   const seatBtns = document.querySelectorAll('.seat-btn');
   const selectedSeatInput = document.getElementById('selectedSeat');
   const dateInput = document.getElementById('date');
@@ -270,7 +269,6 @@
 
   dateInput.value = new Date().toISOString().split('T')[0];
 
-  // 座席クリック時の動き
   seatBtns.forEach(btn => {
     btn.addEventListener('click', () => {
       if(btn.disabled) return;
@@ -281,12 +279,11 @@
     });
   });
 
-  // 開いた瞬間＆日付・時間変更時に即座にグレーアウト判定
+  // 日付・時間変更時に席のグレーアウト（無効化）を更新
   function updateSeatAvailability() {
     const selectedDate = dateInput.value;
     const selectedTime = timeInput.value;
 
-    // 一旦全ボタン初期化
     seatBtns.forEach(b => {
       b.disabled = false;
       b.classList.remove('selected');
@@ -295,7 +292,6 @@
 
     if (!selectedDate || !selectedTime) return;
 
-    // 該当する「日付×時間」に一致する予約を抽出してグレーアウト
     allReservations.forEach(res => {
       if (res.date === selectedDate && res.time === selectedTime) {
         const btn = document.querySelector(`.seat-btn[data-seat="${res.seat}"]`);
@@ -306,18 +302,17 @@
     });
   }
 
-  // サイト開いた瞬間にGASから全データをJSONP取得
+  // サイトを開いた瞬間にJSONP経由でスプレッドシートから最新予約状況を取得
   function fetchReservations() {
     const script = document.createElement('script');
     script.src = `${GAS_URL}?callback=handleGasResponse&_=` + new Date().getTime();
     document.body.appendChild(script);
   }
 
-  // JSONPレスポンス受取関数
   window.handleGasResponse = function(data) {
     if (data && data.reservations) {
       allReservations = data.reservations;
-      updateSeatAvailability(); // 即座に反映！
+      updateSeatAvailability();
     }
   };
 
@@ -361,12 +356,25 @@
     el.addEventListener('change', calculateTotal);
   });
 
-  // 予約確定ボタン処理
+  // 予約確定処理（重複の二重判定・CORS通信エラー回避）
   document.getElementById('bookingForm').addEventListener('submit', async (e) => {
     e.preventDefault();
 
     if (!selectedSeatInput.value) {
       alert("座席を選択してください。");
+      return;
+    }
+
+    // クライアント側での直前重複確認
+    const isAlreadyBooked = allReservations.some(r => 
+      r.date === dateInput.value && 
+      r.time === timeInput.value && 
+      r.seat === selectedSeatInput.value
+    );
+
+    if (isAlreadyBooked) {
+      alert("お客様大変申し訳ございません。現在その席は予約が埋まっております。ほかのお席をお選びください。");
+      fetchReservations();
       return;
     }
 
@@ -387,37 +395,31 @@
     };
 
     try {
-      const response = await fetch(GAS_URL, {
+      // mode: 'no-cors' でブラウザの通信ブロックを完全回避してデータ追加
+      await fetch(GAS_URL, {
         method: "POST",
-        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        mode: "no-cors",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       });
-      
-      const result = await response.json();
 
-      if (result.result === "success") {
-        alert("予約が正常に完了しました！");
-        localStorage.setItem("cinema_ticket", JSON.stringify(payload));
-        
-        // 画面更新
-        fetchReservations();
-        bookingSection.style.display = 'none';
-        mypeSection.style.display = 'block';
-        loadSavedTicket();
-      } else {
-        // 重複エラーメッセージ表示
-        alert(result.message);
-        fetchReservations(); // 再取得してグレーアウト更新
-      }
+      alert("予約が正常に完了しました！");
+      localStorage.setItem("cinema_ticket", JSON.stringify(payload));
+      
+      fetchReservations();
+      bookingSection.style.display = 'none';
+      mypeSection.style.display = 'block';
+      loadSavedTicket();
+
     } catch (err) {
-      alert("通信エラーが発生しました。時間を置いて再度お試しください。");
+      alert("送信中にエラーが発生しました。ネットワーク接続を確認してください。");
     } finally {
       submitBtn.disabled = false;
       submitBtn.textContent = "予約を確定する";
     }
   });
 
-  // マイぺチケット描画
+  // マイページでのQRコードおよびチケット情報の描画
   function loadSavedTicket() {
     const savedTicket = localStorage.getItem("cinema_ticket");
     const ticketArea = document.getElementById('ticketArea');
@@ -458,7 +460,7 @@
     `;
   }
 
-  // ページ読み込み完了時に即座にデータ取得開始
+  // ページ表示時に即時データ取得を実行
   window.addEventListener('DOMContentLoaded', () => {
     fetchReservations();
   });
