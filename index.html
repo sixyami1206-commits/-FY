@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>カラオケシネマ 予約サイト</title>
+  <style>
+    :root {
+      --bg-color: #0f1015;
+      --card-bg: #1a1c23;
+      --accent-color: #ff2a5f;
+      --text-color: #ffffff;
+      --text-muted: #a0a5b5;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
+    body { background-color: var(--bg-color); color: var(--text-color); padding: 20px; line-height: 1.5; }
+    .container { max-width: 600px; margin: 0 auto; background: var(--card-bg); padding: 25px; border-radius: 12px; border: 1px solid #2a2d3d; }
+    h1 { color: var(--accent-color); font-size: 1.5rem; text-align: center; margin-bottom: 10px; }
+    
+    .notice-box {
+      background: #2d151e;
+      border: 1px solid var(--accent-color);
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      font-size: 0.85rem;
+    }
+    .notice-box ul { padding-left: 20px; }
+    .warning { color: #ff5555; font-weight: bold; }
+
+    .form-group { margin-bottom: 18px; }
+    label { display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 6px; }
+    input, select { width: 100%; padding: 10px; background: #0f1015; border: 1px solid #2a2d3d; color: #fff; border-radius: 6px; }
+
+    /* 座席選択エリア */
+    .seats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 8px; }
+    .seat-btn {
+      padding: 12px;
+      background: #2a2d3d;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .seat-btn.selected { background: var(--accent-color); }
+    .seat-btn:disabled { background: #444; color: #777; cursor: not-allowed; text-decoration: line-through; }
+
+    /* オプションセクション */
+    .option-title { margin-top: 25px; padding-bottom: 5px; border-bottom: 1px solid #2a2d3d; font-size: 1rem; }
+    .price-tag { color: var(--accent-color); font-weight: bold; }
+
+    .total-area {
+      margin-top: 25px;
+      padding: 15px;
+      background: #0f1015;
+      border-radius: 8px;
+      text-align: right;
+      font-size: 1.2rem;
+      font-weight: bold;
+    }
+    
+    .submit-btn {
+      width: 100%;
+      padding: 14px;
+      background: var(--accent-color);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 15px;
+    }
+    .submit-btn:disabled { background: #555; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>カラオケシネマ予約</h1>
+
+  <div class="notice-box">
+    <ul>
+      <li>現在、<strong>カラオケ機能は中止</strong>しており、映画鑑賞のみご利用可能です。</li>
+      <li>大画面シアターでお楽しみいただけます。</li>
+      <li class="warning">飲食の持込厳禁🈲</li>
+    </ul>
+  </div>
+
+  <form id="bookingForm">
+    <div class="form-group">
+      <label>お名前</label>
+      <input type="text" id="name" required placeholder="山田 太郎">
+    </div>
+
+    <div class="form-group">
+      <label>鑑賞作品</label>
+      <select id="title" required>
+        <option value="ドラえもん">ドラえもん</option>
+        <option value="サザエさん">サザエさん</option>
+        <option value="ちびまる子ちゃん">ちびまる子ちゃん</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>ご来店日</label>
+      <input type="date" id="date" required>
+    </div>
+
+    <div class="form-group">
+      <label>時間帯 (30分単位)</label>
+      <select id="time" required>
+        <option value="">時間を選択してください</option>
+        <option value="10:00">10:00</option>
+        <option value="10:30">10:30</option>
+        <option value="11:00">11:00</option>
+        <option value="11:30">11:30</option>
+        <option value="12:00">12:00</option>
+        <option value="12:30">12:30</option>
+        <option value="13:00">13:00</option>
+        <option value="13:30">13:30</option>
+        <option value="14:00">14:00</option>
+        <option value="14:30">14:30</option>
+        <option value="15:00">15:00</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>座席を選択（全4席）</label>
+      <div class="seats-grid">
+        <button type="button" class="seat-btn" data-seat="A1">A1</button>
+        <button type="button" class="seat-btn" data-seat="A2">A2</button>
+        <button type="button" class="seat-btn" data-seat="A3">A3</button>
+        <button type="button" class="seat-btn" data-seat="A4">A4</button>
+      </div>
+      <input type="hidden" id="selectedSeat" required>
+    </div>
+
+    <!-- フード・ドリンク -->
+    <h2 class="option-title">ポップコーン</h2>
+    <div class="form-group">
+      <select id="popcornFlavor">
+        <option value="なし" data-price="0">なし</option>
+        <option value="塩" data-price="0">塩</option>
+        <option value="醤油バター(人気)" data-price="0">醤油バター ★人気</option>
+        <option value="キャラメル" data-price="0">キャラメル</option>
+      </select>
+      <select id="popcornSize" style="margin-top: 5px;">
+        <option value="S" data-price="150">Sサイズ (150円)</option>
+        <option value="R" data-price="180">Rサイズ (180円)</option>
+        <option value="RR" data-price="210">RRサイズ (210円)</option>
+        <option value="L" data-price="240">Lサイズ (240円)</option>
+      </select>
+    </div>
+
+    <h2 class="option-title">ドリンク</h2>
+    <div class="form-group">
+      <select id="drinkMenu">
+        <option value="なし" data-star="false">なし</option>
+        <option value="メロンソーダ" data-star="false">メロンソーダ</option>
+        <option value="サイダー" data-star="false">サイダー</option>
+        <option value="パイン" data-star="true">パイン ☆ (おかわり可)</option>
+        <option value="コーラ" data-star="false">コーラ</option>
+        <option value="ペプシ" data-star="false">ペプシ</option>
+        <option value="ソルティライチ" data-star="false">ソルティライチ</option>
+      </select>
+      <select id="drinkSize" style="margin-top: 5px;">
+        <option value="S" data-price="120">Sサイズ (120円)</option>
+        <option value="M" data-price="150">Mサイズ (150円)</option>
+        <option value="L" data-price="170">Lサイズ (170円)</option>
+      </select>
+      <label style="margin-top: 8px; cursor: pointer;">
+        <input type="checkbox" id="drinkRefill" style="width: auto;"> おかわり放題 (+80円) ※パイン☆限定
+      </label>
+    </div>
+
+    <h2 class="option-title">ジェラート</h2>
+    <div class="form-group">
+      <select id="gelatoFlavor">
+        <option value="なし">なし</option>
+        <option value="バニラ直">バニラ直</option>
+        <option value="チョコ">チョコ</option>
+      </select>
+      <select id="gelatoSize" style="margin-top: 5px;">
+        <option value="R" data-price="170">Rサイズ (170円)</option>
+        <option value="L" data-price="200">Lサイズ (200円)</option>
+      </select>
+    </div>
+
+    <div class="total-area">
+      合計金額: <span id="totalPrice" class="price-tag">0</span> 円
+    </div>
+
+    <button type="submit" id="submitBtn" class="submit-btn">予約を確定する</button>
+  </form>
+</div>
+
+<script>
+  // GASのWeb App URLをここに貼り付け
+  const GAS_URL = "https://script.google.com/macros/s/AKfycbz8evcSgt3-txM-zkKBBcnfEYcYKfbMvwOBTZvG1FKAWoTS4yb8Jth3SYKx87XxKEuKig/exec";
+
+  const seatBtns = document.querySelectorAll('.seat-btn');
+  const selectedSeatInput = document.getElementById('selectedSeat');
+  const dateInput = document.getElementById('date');
+  const timeInput = document.getElementById('time');
+
+  // 今日の日付をセット
+  dateInput.value = new Date().toISOString().split('T')[0];
+
+  // 座席選択
+  seatBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      seatBtns.forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      selectedSeatInput.value = btn.dataset.seat;
+      calculateTotal();
+    });
+  });
+
+  // 予約状況確認（日付・時間変更時）
+  async function checkAvailability() {
+    const date = dateInput.value;
+    const time = timeInput.value;
+    
+    // 全座席のリセット
+    seatBtns.forEach(b => {
+      b.disabled = false;
+      b.classList.remove('selected');
+    });
+    selectedSeatInput.value = "";
+
+    if (!date || !time) return;
+
+    try {
+      const res = await fetch(`${GAS_URL}?date=${date}&time=${time}`);
+      const data = await res.json();
+      
+      // 予約済み座席を無効化
+      data.bookedSeats.forEach(seat => {
+        const btn = document.querySelector(`.seat-btn[data-seat="${seat}"]`);
+        if (btn) btn.disabled = true;
+      });
+    } catch (e) {
+      console.error("予約データの取得に失敗しました", e);
+    }
+  }
+
+  dateInput.addEventListener('change', checkAvailability);
+  timeInput.addEventListener('change', checkAvailability);
+
+  // 金額計算
+  function calculateTotal() {
+    let total = 0;
+
+    // ポップコーン
+    const popFlavor = document.getElementById('popcornFlavor').value;
+    if (popFlavor !== "なし") {
+      const popSize = document.getElementById('popcornSize');
+      total += parseInt(popSize.options[popSize.selectedIndex].dataset.price);
+    }
+
+    // ドリンク
+    const drinkMenu = document.getElementById('drinkMenu');
+    const drinkVal = drinkMenu.value;
+    const isStar = drinkMenu.options[drinkMenu.selectedIndex].dataset.star === "true";
+    const refillCheckbox = document.getElementById('drinkRefill');
+
+    // ★がついている場合のみチェックボックス有効
+    refillCheckbox.disabled = !isStar;
+    if (!isStar) refillCheckbox.checked = false;
+
+    if (drinkVal !== "なし") {
+      const drinkSize = document.getElementById('drinkSize');
+      total += parseInt(drinkSize.options[drinkSize.selectedIndex].dataset.price);
+      if (refillCheckbox.checked) total += 80;
+    }
+
+    // ジェラート
+    const gelatoFlavor = document.getElementById('gelatoFlavor').value;
+    if (gelatoFlavor !== "なし") {
+      const gelatoSize = document.getElementById('gelatoSize');
+      total += parseInt(gelatoSize.options[gelatoSize.selectedIndex].dataset.price);
+    }
+
+    document.getElementById('totalPrice').textContent = total;
+    return total;
+  }
+
+  document.querySelectorAll('select, input').forEach(el => {
+    el.addEventListener('change', calculateTotal);
+  });
+
+  // 予約送信
+  document.getElementById('bookingForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    if (!selectedSeatInput.value) {
+      alert("座席を選択してください。");
+      return;
+    }
+
+    const submitBtn = document.getElementById('submitBtn');
+    submitBtn.disabled = true;
+    submitBtn.textContent = "送信中...";
+
+    const payload = {
+      name: document.getElementById('name').value,
+      title: document.getElementById('title').value,
+      date: dateInput.value,
+      time: timeInput.value,
+      seat: selectedSeatInput.value,
+      popcorn: `${document.getElementById('popcornFlavor').value} (${document.getElementById('popcornSize').value})`,
+      drink: `${document.getElementById('drinkMenu').value} (${document.getElementById('drinkSize').value}) ${document.getElementById('drinkRefill').checked ? '+おかわり' : ''}`,
+      gelato: `${document.getElementById('gelatoFlavor').value} (${document.getElementById('gelatoSize').value})`,
+      totalPrice: calculateTotal()
+    };
+
+    try {
+      const res = await fetch(GAS_URL, {
+        method: "POST",
+        body: JSON.stringify(payload)
+      });
+      const result = await res.json();
+
+      if (result.result === "success") {
+        alert("予約が正常に完了しました！");
+        checkAvailability(); // 再読み込みして席を更新
+      } else {
+        alert(result.message);
+        checkAvailability();
+      }
+    } catch (err) {
+      alert("エラーが発生しました。通信環境をご確認ください。");
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = "予約を確定する";
+    }
+  });
+</script>
+
+</body>
+</html>
