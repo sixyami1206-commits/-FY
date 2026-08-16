@@ -10,6 +10,8 @@
       --bg-color: #0f1015;
       --card-bg: #1a1c23;
       --accent-color: #ff2a5f;
+      --seat-available: #2563eb; /* 空席：青 */
+      --seat-occupied: #dc2626;  /* 予約済み：赤 */
       --text-color: #ffffff;
       --text-muted: #a0a5b5;
     }
@@ -45,20 +47,47 @@
     label { display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 6px; }
     input, select { width: 100%; padding: 10px; background: #0f1015; border: 1px solid #2a2d3d; color: #fff; border-radius: 6px; }
 
+    /* 座席ステータス */
+    .seat-status-msg { font-size: 0.85rem; color: #3b82f6; margin-top: 5px; font-weight: bold; }
+    .seat-legend { display: flex; gap: 15px; font-size: 0.8rem; margin-top: 8px; }
+    .legend-item { display: flex; align-items: center; gap: 5px; }
+    .dot { width: 12px; height: 12px; border-radius: 3px; }
+
     .seats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 8px; }
-    .seat-btn { padding: 12px; background: #2a2d3d; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
-    .seat-btn.selected { background: var(--accent-color); }
-    .seat-btn:disabled { background: #3a3a3a !important; color: #777 !important; cursor: not-allowed; text-decoration: line-through; border: 1px solid #555; }
+    
+    /* 座席ボタンの色定義 */
+    .seat-btn {
+      padding: 12px;
+      background: var(--seat-available); /* 空席：青 */
+      color: #fff;
+      border: 2px solid transparent;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: all 0.2s;
+    }
+    .seat-btn.selected {
+      background: var(--accent-color) !important; /* 選択中：ピンク */
+      border-color: #fff;
+    }
+    .seat-btn:disabled {
+      background: var(--seat-occupied) !important; /* 予約済み：赤 */
+      color: #ffcccc !important;
+      cursor: not-allowed;
+      text-decoration: line-through;
+      opacity: 0.7;
+    }
 
     .option-title { margin-top: 25px; padding-bottom: 5px; border-bottom: 1px solid #2a2d3d; font-size: 1rem; }
     .price-tag { color: var(--accent-color); font-weight: bold; }
 
     .total-area { margin-top: 25px; padding: 15px; background: #0f1015; border-radius: 8px; text-align: right; font-size: 1.2rem; font-weight: bold; }
     .submit-btn { width: 100%; padding: 14px; background: var(--accent-color); color: white; border: none; border-radius: 6px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-top: 15px; }
+    .submit-btn:disabled { background: #555; cursor: not-allowed; }
 
     .ticket-card { background: #fff; color: #000; border-radius: 10px; padding: 20px; margin-top: 25px; text-align: center; }
     .ticket-card h2 { font-size: 1.2rem; color: #111; margin-bottom: 10px; }
-    #qrcode { display: flex; justify-content: center; margin: 15px 0; }
+    #qrcode { display: flex; justify-content: center; align-items: center; margin: 15px 0; min-height: 170px; }
     .ticket-info { text-align: left; font-size: 0.9rem; border-top: 1px dashed #ccc; padding-top: 10px; margin-top: 10px; }
   </style>
 </head>
@@ -80,7 +109,6 @@
     <div class="sidebar-menu-item" id="navMype">👤 マイぺ（予約チケット確認）</div>
   </div>
 
-  <!-- 裏で送信を処理するための隠しフレーム -->
   <iframe name="hidden_iframe" id="hidden_iframe" style="display:none;"></iframe>
 
   <div class="container">
@@ -95,7 +123,6 @@
         </ul>
       </div>
 
-      <!-- target="hidden_iframe" で画面遷移を阻止 -->
       <form id="bookingForm" action="https://script.google.com/macros/s/AKfycbzpVEW-hpe0KvTwL95tLKitS0IloZGkv0ToO9uK0DS2wByTh0kpxeKnX_YSTwNI3f6WxA/exec" method="POST" target="hidden_iframe">
         <div class="form-group">
           <label>お名前</label>
@@ -148,6 +175,13 @@
 
         <div class="form-group">
           <label>座席を選択（全4席）</label>
+          <div id="seatStatusMsg" class="seat-status-msg"></div>
+          
+          <div class="seat-legend">
+            <div class="legend-item"><div class="dot" style="background:var(--seat-available);"></div> 空席 (選択可)</div>
+            <div class="legend-item"><div class="dot" style="background:var(--seat-occupied);"></div> 予約済み (不可)</div>
+          </div>
+
           <div class="seats-grid">
             <button type="button" class="seat-btn" data-seat="A1">A1</button>
             <button type="button" class="seat-btn" data-seat="A2">A2</button>
@@ -247,6 +281,7 @@
   const navMype = document.getElementById('navMype');
   const bookingSection = document.getElementById('bookingSection');
   const mypeSection = document.getElementById('mypeSection');
+  const seatStatusMsg = document.getElementById('seatStatusMsg');
 
   function showSection(section) {
     if (section === 'mype') {
@@ -288,28 +323,47 @@
     });
   });
 
+  // 最新の空席状況を画面に反映（青：空席 / 赤：予約済み）
   function updateSeatAvailability() {
     const selectedDate = dateInput.value;
     const selectedTime = timeInput.value;
 
+    // リセット（すべて青・有効化）
     seatBtns.forEach(b => {
       b.disabled = false;
       b.classList.remove('selected');
     });
     selectedSeatInput.value = "";
 
-    if (!selectedDate || !selectedTime) return;
+    if (!selectedDate || !selectedTime) {
+      seatStatusMsg.textContent = "※日時を選択すると最新の空席状況が表示されます";
+      return;
+    }
 
+    let occupiedCount = 0;
     allReservations.forEach(res => {
       if (res.date === selectedDate && res.time === selectedTime) {
         const btn = document.querySelector(`.seat-btn[data-seat="${res.seat}"]`);
-        if (btn) btn.disabled = true;
+        if (btn) {
+          btn.disabled = true; // 赤色・選択不可に
+          occupiedCount++;
+        }
       }
     });
+
+    seatStatusMsg.textContent = `空席状況を取得しました（予約済み: ${occupiedCount}席）`;
   }
 
+  // GASからリアルタイム同期
   function fetchReservations() {
+    seatStatusMsg.textContent = "⌛ 最新の空席情報を取得中...";
+    
+    // 古いJSONPスクリプトがあれば削除
+    const oldScript = document.getElementById('gas-script');
+    if (oldScript) oldScript.remove();
+
     const script = document.createElement('script');
+    script.id = 'gas-script';
     script.src = `${GAS_URL}?callback=handleGasResponse&_=` + new Date().getTime();
     document.body.appendChild(script);
   }
@@ -318,11 +372,14 @@
     if (data && data.reservations) {
       allReservations = data.reservations;
       updateSeatAvailability();
+    } else {
+      seatStatusMsg.textContent = "空席情報の取得に失敗しました。";
     }
   };
 
-  dateInput.addEventListener('change', updateSeatAvailability);
-  timeInput.addEventListener('change', updateSeatAvailability);
+  // 日時変更時にGASと即時同期
+  dateInput.addEventListener('change', fetchReservations);
+  timeInput.addEventListener('change', fetchReservations);
 
   function calculateTotal() {
     let total = 0;
@@ -366,7 +423,7 @@
     el.addEventListener('change', calculateTotal);
   });
 
-  // フォーム送信イベント（隠しiframeへ送信）
+  // 送信処理
   document.getElementById('bookingForm').addEventListener('submit', function(e) {
     if (!selectedSeatInput.value) {
       e.preventDefault();
@@ -380,7 +437,6 @@
     submitBtn.disabled = true;
     submitBtn.textContent = "送信中...";
 
-    // 予約データをローカル保存用に保持
     submittedPayload = {
       name: document.getElementById('name').value,
       title: document.getElementById('title').value,
@@ -394,7 +450,7 @@
     };
   });
 
-  // 隠しiframeの送信完了検知
+  // 送信完了時の処理
   document.getElementById('hidden_iframe').addEventListener('load', function() {
     if (submittedPayload) {
       localStorage.setItem("cinema_ticket", JSON.stringify(submittedPayload));
@@ -406,9 +462,11 @@
       
       submittedPayload = null;
       showSection('mype');
+      fetchReservations(); // 最新データを再取得
     }
   });
 
+  // QRコード確実描画ロジック
   function loadSavedTicket() {
     const savedTicket = localStorage.getItem("cinema_ticket");
     const ticketArea = document.getElementById('ticketArea');
@@ -431,11 +489,18 @@
 
     const qrText = `[KARAOKE CINEMA TICKET]\nNAME:${ticket.name}\nTITLE:${ticket.title}\nDATE:${ticket.date}\nTIME:${ticket.time}\nSEAT:${ticket.seat}\nPRICE:${ticket.totalPrice}`;
 
-    new QRCode(qrcodeContainer, {
-      text: qrText,
-      width: 170,
-      height: 170
-    });
+    // ライブラリの読み込みを待って確実にQR生成
+    setTimeout(() => {
+      if (typeof QRCode !== 'undefined') {
+        new QRCode(qrcodeContainer, {
+          text: qrText,
+          width: 170,
+          height: 170
+        });
+      } else {
+        qrcodeContainer.innerHTML = "<p style='color:red;'>QRコードの読み込みに失敗しました</p>";
+      }
+    }, 100);
 
     detailsContainer.innerHTML = `
       <p><strong>お名前:</strong> ${ticket.name} 様</p>
@@ -449,6 +514,7 @@
     `;
   }
 
+  // ページ開いた瞬間に即時同期
   window.addEventListener('DOMContentLoaded', () => {
     fetchReservations();
   });
