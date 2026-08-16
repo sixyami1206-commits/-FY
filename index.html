@@ -55,10 +55,9 @@
 
     .seats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 8px; }
     
-    /* 座席ボタンの色定義 */
     .seat-btn {
       padding: 12px;
-      background: var(--seat-available); /* 空席：青 */
+      background: var(--seat-available);
       color: #fff;
       border: 2px solid transparent;
       border-radius: 6px;
@@ -67,11 +66,11 @@
       transition: all 0.2s;
     }
     .seat-btn.selected {
-      background: var(--accent-color) !important; /* 選択中：ピンク */
+      background: var(--accent-color) !important;
       border-color: #fff;
     }
     .seat-btn:disabled {
-      background: var(--seat-occupied) !important; /* 予約済み：赤 */
+      background: var(--seat-occupied) !important;
       color: #ffcccc !important;
       cursor: not-allowed;
       text-decoration: line-through;
@@ -112,6 +111,7 @@
   <iframe name="hidden_iframe" id="hidden_iframe" style="display:none;"></iframe>
 
   <div class="container">
+    <!-- 予約エリア -->
     <div id="bookingSection">
       <h1 style="color: var(--accent-color); font-size: 1.4rem; text-align: center; margin-bottom: 15px;">シアター予約</h1>
 
@@ -253,11 +253,27 @@
       </form>
     </div>
 
+    <!-- マイぺエリア -->
     <div id="mypeSection" style="display: none;">
       <h1 style="color: var(--accent-color); font-size: 1.4rem; text-align: center;">マイぺ (予約確認)</h1>
       <div id="ticketArea" class="ticket-card">
         <h2>🎟️ 入場用予約チケット</h2>
-        <p style="font-size: 0.8rem; color: #555;">入場時に以下のQRコードをご提示ください</p>
+        
+        <!-- 手動・再生成ボタン -->
+        <button type="button" id="generateQrBtn" style="
+          background: var(--accent-color);
+          color: white;
+          border: none;
+          padding: 10px 18px;
+          font-weight: bold;
+          border-radius: 6px;
+          cursor: pointer;
+          margin: 10px 0 15px 0;
+          font-size: 0.9rem;
+        ">
+          📱 QRコードを表示・再生成
+        </button>
+
         <div id="qrcode"></div>
         <div class="ticket-info" id="ticketDetails"></div>
       </div>
@@ -323,12 +339,11 @@
     });
   });
 
-  // 最新の空席状況を画面に反映（青：空席 / 赤：予約済み）
+  // 最新の空席状況を画面に反映
   function updateSeatAvailability() {
     const selectedDate = dateInput.value;
     const selectedTime = timeInput.value;
 
-    // リセット（すべて青・有効化）
     seatBtns.forEach(b => {
       b.disabled = false;
       b.classList.remove('selected');
@@ -345,7 +360,7 @@
       if (res.date === selectedDate && res.time === selectedTime) {
         const btn = document.querySelector(`.seat-btn[data-seat="${res.seat}"]`);
         if (btn) {
-          btn.disabled = true; // 赤色・選択不可に
+          btn.disabled = true;
           occupiedCount++;
         }
       }
@@ -358,7 +373,6 @@
   function fetchReservations() {
     seatStatusMsg.textContent = "⌛ 最新の空席情報を取得中...";
     
-    // 古いJSONPスクリプトがあれば削除
     const oldScript = document.getElementById('gas-script');
     if (oldScript) oldScript.remove();
 
@@ -377,7 +391,6 @@
     }
   };
 
-  // 日時変更時にGASと即時同期
   dateInput.addEventListener('change', fetchReservations);
   timeInput.addEventListener('change', fetchReservations);
 
@@ -450,7 +463,6 @@
     };
   });
 
-  // 送信完了時の処理
   document.getElementById('hidden_iframe').addEventListener('load', function() {
     if (submittedPayload) {
       localStorage.setItem("cinema_ticket", JSON.stringify(submittedPayload));
@@ -462,11 +474,43 @@
       
       submittedPayload = null;
       showSection('mype');
-      fetchReservations(); // 最新データを再取得
+      fetchReservations();
     }
   });
 
-  // QRコード確実描画ロジック
+  // 100%描画されるQR生成ロジック（ボタン＋フォールバックAPI付き）
+  document.getElementById('generateQrBtn').addEventListener('click', generateQRCode);
+
+  function generateQRCode() {
+    const savedTicket = localStorage.getItem("cinema_ticket");
+    if (!savedTicket) return;
+
+    const ticket = JSON.parse(savedTicket);
+    const qrcodeContainer = document.getElementById('qrcode');
+    qrcodeContainer.innerHTML = "";
+
+    const qrText = `[KARAOKE CINEMA TICKET]\nNAME:${ticket.name}\nTITLE:${ticket.title}\nDATE:${ticket.date}\nTIME:${ticket.time}\nSEAT:${ticket.seat}\nPRICE:${ticket.totalPrice}`;
+
+    // ライブラリで生成
+    if (typeof QRCode !== 'undefined') {
+      try {
+        new QRCode(qrcodeContainer, {
+          text: qrText,
+          width: 170,
+          height: 170
+        });
+        return;
+      } catch (e) {
+        console.warn("JSライブラリでの生成に失敗したためAPIに切り替えます", e);
+      }
+    }
+
+    // バックアップ用外部API（ライブラリ読み込み失敗時も確実に表示）
+    const encodedText = encodeURIComponent(qrText);
+    const apiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=170x170&data=${encodedText}`;
+    qrcodeContainer.innerHTML = `<img src="${apiUrl}" alt="予約QRコード" style="width:170px; height:170px;">`;
+  }
+
   function loadSavedTicket() {
     const savedTicket = localStorage.getItem("cinema_ticket");
     const ticketArea = document.getElementById('ticketArea');
@@ -482,25 +526,7 @@
     noTicketMsg.style.display = 'none';
 
     const ticket = JSON.parse(savedTicket);
-    const qrcodeContainer = document.getElementById('qrcode');
     const detailsContainer = document.getElementById('ticketDetails');
-
-    qrcodeContainer.innerHTML = "";
-
-    const qrText = `[KARAOKE CINEMA TICKET]\nNAME:${ticket.name}\nTITLE:${ticket.title}\nDATE:${ticket.date}\nTIME:${ticket.time}\nSEAT:${ticket.seat}\nPRICE:${ticket.totalPrice}`;
-
-    // ライブラリの読み込みを待って確実にQR生成
-    setTimeout(() => {
-      if (typeof QRCode !== 'undefined') {
-        new QRCode(qrcodeContainer, {
-          text: qrText,
-          width: 170,
-          height: 170
-        });
-      } else {
-        qrcodeContainer.innerHTML = "<p style='color:red;'>QRコードの読み込みに失敗しました</p>";
-      }
-    }, 100);
 
     detailsContainer.innerHTML = `
       <p><strong>お名前:</strong> ${ticket.name} 様</p>
@@ -512,9 +538,10 @@
       <p><strong>ジェラート:</strong> ${ticket.gelato}</p>
       <p><strong>合計金額:</strong> ${ticket.totalPrice} 円</p>
     `;
+
+    generateQRCode();
   }
 
-  // ページ開いた瞬間に即時同期
   window.addEventListener('DOMContentLoaded', () => {
     fetchReservations();
   });
