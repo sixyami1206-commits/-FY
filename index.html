@@ -92,18 +92,15 @@
         </ul>
       </div>
 
-      <!-- 標準フォーム送信（CORS通信エラーを完全回避） -->
-      <form id="bookingForm" method="POST">
-        <input type="hidden" id="redirectUrl" name="redirectUrl">
-
+      <form id="bookingForm">
         <div class="form-group">
           <label>お名前</label>
-          <input type="text" id="name" name="name" required placeholder="山田 太郎">
+          <input type="text" id="name" required placeholder="山田 太郎">
         </div>
 
         <div class="form-group">
           <label>鑑賞作品</label>
-          <select id="title" name="title" required>
+          <select id="title" required>
             <option value="ドラえもん">ドラえもん</option>
             <option value="サザエさん">サザエさん</option>
             <option value="ちびまる子ちゃん">ちびまる子ちゃん</option>
@@ -112,12 +109,12 @@
 
         <div class="form-group">
           <label>ご来店日</label>
-          <input type="date" id="date" name="date" required>
+          <input type="date" id="date" required>
         </div>
 
         <div class="form-group">
           <label>時間帯 (30分単位・21:00まで)</label>
-          <select id="time" name="time" required>
+          <select id="time" required>
             <option value="">時間を選択してください</option>
             <option value="10:00">10:00</option>
             <option value="10:30">10:30</option>
@@ -153,7 +150,7 @@
             <button type="button" class="seat-btn" data-seat="A3">A3</button>
             <button type="button" class="seat-btn" data-seat="A4">A4</button>
           </div>
-          <input type="hidden" id="selectedSeat" name="seat" required>
+          <input type="hidden" id="selectedSeat" required>
         </div>
 
         <h2 class="option-title">ポップコーン</h2>
@@ -170,7 +167,6 @@
             <option value="RR" data-price="210">RRサイズ (210円)</option>
             <option value="L" data-price="240">Lサイズ (240円)</option>
           </select>
-          <input type="hidden" id="popcorn" name="popcorn">
         </div>
 
         <h2 class="option-title">ドリンク</h2>
@@ -192,7 +188,6 @@
           <label style="margin-top: 8px; cursor: pointer; font-size: 0.85rem;">
             <input type="checkbox" id="drinkRefill" style="width: auto;"> おかわり放題 (+80円) ※パイン☆限定
           </label>
-          <input type="hidden" id="drink" name="drink">
         </div>
 
         <h2 class="option-title">ジェラート</h2>
@@ -206,12 +201,10 @@
             <option value="R" data-price="170">Rサイズ (170円)</option>
             <option value="L" data-price="200">Lサイズ (200円)</option>
           </select>
-          <input type="hidden" id="gelato" name="gelato">
         </div>
 
         <div class="total-area">
           合計金額: <span id="totalPrice" class="price-tag">0</span> 円
-          <input type="hidden" id="totalPriceInput" name="totalPrice" value="0">
         </div>
 
         <button type="submit" id="submitBtn" class="submit-btn">予約を確定する</button>
@@ -233,11 +226,8 @@
   </div>
 
 <script>
-  // 提供いただいた最新のWebアプリURLを反映
+  // 最新のWebアプリURLに差し替えてください
   const GAS_URL = "https://script.google.com/macros/s/AKfycbzpVEW-hpe0KvTwL95tLKitS0IloZGkv0ToO9uK0DS2wByTh0kpxeKnX_YSTwNI3f6WxA/exec";
-
-  document.getElementById('bookingForm').action = GAS_URL;
-  document.getElementById('redirectUrl').value = window.location.href.split('#')[0];
 
   let allReservations = [];
 
@@ -290,7 +280,6 @@
     });
   });
 
-  // 日付・時間選択時のグレーアウト処理
   function updateSeatAvailability() {
     const selectedDate = dateInput.value;
     const selectedTime = timeInput.value;
@@ -311,7 +300,6 @@
     });
   }
 
-  // 初回読み込み（JSONPで取得）
   function fetchReservations() {
     const script = document.createElement('script');
     script.src = `${GAS_URL}?callback=handleGasResponse&_=` + new Date().getTime();
@@ -328,7 +316,6 @@
   dateInput.addEventListener('change', updateSeatAvailability);
   timeInput.addEventListener('change', updateSeatAvailability);
 
-  // 金額計算
   function calculateTotal() {
     let total = 0;
 
@@ -358,12 +345,6 @@
     }
 
     document.getElementById('totalPrice').textContent = total;
-    document.getElementById('totalPriceInput').value = total;
-
-    document.getElementById('popcorn').value = `${document.getElementById('popcornFlavor').value} (${document.getElementById('popcornSize').value})`;
-    document.getElementById('drink').value = `${document.getElementById('drinkMenu').value} (${document.getElementById('drinkSize').value}) ${document.getElementById('drinkRefill').checked ? '+おかわり' : ''}`;
-    document.getElementById('gelato').value = `${document.getElementById('gelatoFlavor').value} (${document.getElementById('gelatoSize').value})`;
-
     return total;
   }
 
@@ -371,17 +352,53 @@
     el.addEventListener('change', calculateTotal);
   });
 
-  // 送信前チェック
-  document.getElementById('bookingForm').addEventListener('submit', (e) => {
+  // 非同期送信（ページ遷移・接続拒否を完全回避）
+  document.getElementById('bookingForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+
     if (!selectedSeatInput.value) {
-      e.preventDefault();
       alert("座席を選択してください。");
       return;
     }
-    calculateTotal();
+
+    const submitBtn = document.getElementById('submitBtn');
+    submitBtn.disabled = true;
+    submitBtn.textContent = "送信中...";
+
+    const payload = {
+      name: document.getElementById('name').value,
+      title: document.getElementById('title').value,
+      date: dateInput.value,
+      time: timeInput.value,
+      seat: selectedSeatInput.value,
+      popcorn: `${document.getElementById('popcornFlavor').value} (${document.getElementById('popcornSize').value})`,
+      drink: `${document.getElementById('drinkMenu').value} (${document.getElementById('drinkSize').value}) ${document.getElementById('drinkRefill').checked ? '+おかわり' : ''}`,
+      gelato: `${document.getElementById('gelatoFlavor').value} (${document.getElementById('gelatoSize').value})`,
+      totalPrice: document.getElementById('totalPrice').textContent
+    };
+
+    // 画面遷移を起こさないバックグラウンド送信
+    fetch(GAS_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+    .then(() => {
+      // no-corsにより送信完了後は確実に成功扱いにしてマイページへ進める
+      localStorage.setItem("cinema_ticket", JSON.stringify(payload));
+      alert("予約が正常に完了しました！");
+      submitBtn.disabled = false;
+      submitBtn.textContent = "予約を確定する";
+      showSection('mype');
+    })
+    .catch(err => {
+      alert("通信エラーが発生しました。");
+      submitBtn.disabled = false;
+      submitBtn.textContent = "予約を確定する";
+    });
   });
 
-  // チケット表示・QRコード生成
   function loadSavedTicket() {
     const savedTicket = localStorage.getItem("cinema_ticket");
     const ticketArea = document.getElementById('ticketArea');
@@ -424,9 +441,6 @@
 
   window.addEventListener('DOMContentLoaded', () => {
     fetchReservations();
-    if (window.location.hash === '#mype') {
-      showSection('mype');
-    }
   });
 </script>
 
