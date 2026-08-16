@@ -3,60 +3,68 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>カラオケシネマ 予約サイト</title>
+  <title>WORLD CINEMA (ワールドシネマ) - 予約システム</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <style>
     :root {
-      --bg-color: #0f1015;
-      --card-bg: #1a1c23;
-      --accent-color: #ff2a5f;
-      --seat-available: #2563eb; /* 空席：青 */
-      --seat-occupied: #dc2626;  /* 予約済み：赤 */
+      --bg-color: #0b0c10;
+      --card-bg: #1f2833;
+      --card-inner: #121921;
+      --accent-color: #66fcf1;
+      --accent-gold: #c5a059;
+      --seat-available: #1f51ff;
+      --seat-occupied: #d9534f;
+      --seat-selected: #00ff66;
       --text-color: #ffffff;
-      --text-muted: #a0a5b5;
+      --text-muted: #c5c6c7;
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
-    body { background-color: var(--bg-color); color: var(--text-color); padding-top: 70px; padding-bottom: 30px; line-height: 1.5; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body { background-color: var(--bg-color); color: var(--text-color); padding-top: 70px; padding-bottom: 50px; }
     
     header {
       position: fixed; top: 0; left: 0; width: 100%; height: 60px;
-      background: rgba(26, 28, 35, 0.95); border-bottom: 1px solid #2a2d3d;
+      background: rgba(11, 12, 16, 0.95); border-bottom: 2px solid var(--accent-gold);
       display: flex; align-items: center; justify-content: space-between; padding: 0 15px; z-index: 1000;
     }
-    .menu-btn { background: none; border: none; color: #fff; font-size: 1.8rem; cursor: pointer; }
-    .header-title { font-size: 1.1rem; font-weight: bold; color: var(--accent-color); }
+    .menu-btn { background: none; border: none; color: var(--accent-gold); font-size: 1.8rem; cursor: pointer; }
+    .header-title { font-size: 1.2rem; font-weight: bold; letter-spacing: 2px; color: #fff; text-shadow: 0 0 5px var(--accent-color); }
 
     .sidebar {
       position: fixed; top: 0; left: -280px; width: 280px; height: 100%;
-      background: var(--card-bg); border-right: 1px solid #2a2d3d; z-index: 1001;
+      background: var(--card-bg); border-right: 1px solid var(--accent-gold); z-index: 1001;
       transition: left 0.3s ease; padding: 20px;
     }
     .sidebar.open { left: 0; }
-    .sidebar-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #2a2d3d; padding-bottom: 15px; margin-bottom: 20px; }
-    .sidebar-menu-item { padding: 12px 15px; background: #0f1015; border-radius: 6px; color: #fff; display: block; margin-bottom: 10px; cursor: pointer; font-weight: bold; }
-    .sidebar-menu-item:hover { background: var(--accent-color); }
-    .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; display: none; }
+    .sidebar-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #45a29e; padding-bottom: 15px; margin-bottom: 20px; }
+    .sidebar-menu-item { padding: 12px 15px; background: #0b0c10; border-radius: 6px; color: #fff; display: block; margin-bottom: 10px; cursor: pointer; font-weight: bold; border-left: 3px solid var(--accent-color); }
+    .sidebar-menu-item:hover { background: var(--accent-color); color: #000; }
+    .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; display: none; }
     .overlay.show { display: block; }
 
-    .container { max-width: 600px; margin: 0 auto; background: var(--card-bg); padding: 25px; border-radius: 12px; border: 1px solid #2a2d3d; }
-    .notice-box { background: #2d151e; border: 1px solid var(--accent-color); padding: 12px; border-radius: 8px; margin-bottom: 20px; font-size: 0.85rem; }
+    .container { max-width: 650px; margin: 0 auto; background: var(--card-bg); padding: 25px; border-radius: 12px; border: 1px solid #45a29e; box-shadow: 0 0 20px rgba(0,0,0,0.8); }
+    
+    .hero-banner { background: linear-gradient(135deg, #1f2833, #0b0c10); border: 1px solid var(--accent-gold); padding: 15px; border-radius: 8px; text-align: center; margin-bottom: 20px; }
+    .hero-banner h2 { color: var(--accent-gold); font-size: 1.3rem; margin-bottom: 5px; }
+    .hero-banner p { font-size: 0.85rem; color: var(--text-muted); }
+
+    .notice-box { background: rgba(220, 53, 69, 0.15); border: 1px solid var(--seat-occupied); padding: 12px; border-radius: 8px; margin-bottom: 20px; font-size: 0.85rem; }
     .notice-box ul { padding-left: 20px; }
-    .warning { color: #ff5555; font-weight: bold; }
 
-    .form-group { margin-bottom: 18px; }
-    label { display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 6px; }
-    input, select { width: 100%; padding: 10px; background: #0f1015; border: 1px solid #2a2d3d; color: #fff; border-radius: 6px; }
+    .form-group { margin-bottom: 20px; background: var(--card-inner); padding: 15px; border-radius: 8px; border: 1px solid #2c3540; }
+    label { display: block; font-size: 0.9rem; color: var(--accent-color); margin-bottom: 8px; font-weight: bold; }
+    input, select { width: 100%; padding: 10px; background: #0b0c10; border: 1px solid #45a29e; color: #fff; border-radius: 6px; margin-bottom: 8px; }
 
-    /* 座席ステータス */
-    .seat-status-msg { font-size: 0.85rem; color: #3b82f6; margin-top: 5px; font-weight: bold; }
-    .seat-legend { display: flex; gap: 15px; font-size: 0.8rem; margin-top: 8px; }
+    /* 座席選択 */
+    .seat-status-msg { font-size: 0.85rem; color: #ffeb3b; margin-bottom: 8px; font-weight: bold; }
+    .seat-legend { display: flex; gap: 12px; font-size: 0.8rem; margin-bottom: 12px; flex-wrap: wrap; }
     .legend-item { display: flex; align-items: center; gap: 5px; }
     .dot { width: 12px; height: 12px; border-radius: 3px; }
 
-    .seats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 8px; }
+    .screen-indicator { text-align: center; background: #45a29e; color: #000; font-size: 0.75rem; font-weight: bold; padding: 4px; border-radius: 4px; margin-bottom: 15px; letter-spacing: 4px; }
+    .seats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
     
     .seat-btn {
-      padding: 12px;
+      padding: 14px 5px;
       background: var(--seat-available);
       color: #fff;
       border: 2px solid transparent;
@@ -64,47 +72,61 @@
       cursor: pointer;
       font-weight: bold;
       transition: all 0.2s;
+      text-align: center;
     }
     .seat-btn.selected {
-      background: var(--accent-color) !important;
+      background: var(--seat-selected) !important;
+      color: #000;
       border-color: #fff;
     }
     .seat-btn:disabled {
       background: var(--seat-occupied) !important;
-      color: #ffcccc !important;
+      color: #888 !important;
       cursor: not-allowed;
       text-decoration: line-through;
-      opacity: 0.7;
+      opacity: 0.6;
     }
 
-    .option-title { margin-top: 25px; padding-bottom: 5px; border-bottom: 1px solid #2a2d3d; font-size: 1rem; }
-    .price-tag { color: var(--accent-color); font-weight: bold; }
+    .price-breakdown { font-size: 0.85rem; color: var(--text-muted); line-height: 1.6; margin-top: 10px; }
+    .discount-tag { color: #ff5555; font-weight: bold; }
 
-    .total-area { margin-top: 25px; padding: 15px; background: #0f1015; border-radius: 8px; text-align: right; font-size: 1.2rem; font-weight: bold; }
-    .submit-btn { width: 100%; padding: 14px; background: var(--accent-color); color: white; border: none; border-radius: 6px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-top: 15px; }
-    .submit-btn:disabled { background: #555; cursor: not-allowed; }
+    .total-area { margin-top: 25px; padding: 20px; background: #0b0c10; border-radius: 8px; text-align: right; border: 1px solid var(--accent-gold); }
+    .total-price { font-size: 1.6rem; color: var(--accent-gold); font-weight: bold; }
 
-    .ticket-card { background: #fff; color: #000; border-radius: 10px; padding: 20px; margin-top: 25px; text-align: center; }
-    .ticket-card h2 { font-size: 1.2rem; color: #111; margin-bottom: 10px; }
-    #qrcode { display: flex; justify-content: center; align-items: center; margin: 15px 0; min-height: 170px; }
-    .ticket-info { text-align: left; font-size: 0.9rem; border-top: 1px dashed #ccc; padding-top: 10px; margin-top: 10px; }
+    .submit-btn { width: 100%; padding: 16px; background: linear-gradient(45deg, #c5a059, #e6c687); color: #000; border: none; border-radius: 6px; font-size: 1.1rem; font-weight: bold; cursor: pointer; margin-top: 15px; }
+    .submit-btn:disabled { background: #555; color: #888; cursor: not-allowed; }
+
+    /* チケット・QRアニメーション */
+    .ticket-card { background: #fff; color: #000; border-radius: 10px; padding: 20px; margin-top: 20px; text-align: center; }
+    .ticket-card h2 { font-size: 1.2rem; color: #111; margin-bottom: 10px; border-bottom: 2px solid #111; padding-bottom: 5px; }
+    
+    #qrSection { margin: 20px 0; min-height: 180px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    #qrcode { display: flex; justify-content: center; align-items: center; }
+
+    .progress-bar-container { width: 80%; background: #ddd; border-radius: 10px; height: 16px; overflow: hidden; margin: 15px 0; display: none; }
+    .progress-bar { width: 0%; height: 100%; background: #2563eb; transition: width 0.1s linear; }
+    .spinner { border: 4px solid #f3f3f3; border-top: 4px solid var(--seat-available); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; display: none; margin-bottom: 10px; }
+    
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+    .lock-notice { background: #fff3cd; color: #856404; padding: 12px; border-radius: 6px; font-size: 0.85rem; font-weight: bold; }
   </style>
 </head>
 <body>
 
   <header>
     <button class="menu-btn" id="openMenuBtn">☰</button>
-    <div class="header-title">KARAOKE CINEMA</div>
+    <div class="header-title">🎬 WORLD CINEMA</div>
     <div style="width: 30px;"></div>
   </header>
 
   <div class="overlay" id="overlay"></div>
   <div class="sidebar" id="sidebar">
     <div class="sidebar-header">
-      <h3 style="color: var(--accent-color);">メニュー</h3>
-      <button class="menu-btn" id="closeMenuBtn" style="font-size: 1.2rem;">✕</button>
+      <h3 style="color: var(--accent-gold);">WORLD CINEMA</h3>
+      <button class="menu-btn" id="closeMenuBtn" style="font-size: 1.2rem; color:#fff;">✕</button>
     </div>
-    <div class="sidebar-menu-item" id="navHome">📝 新規予約</div>
+    <div class="sidebar-menu-item" id="navHome">🎟️ 映画予約・チケット購入</div>
     <div class="sidebar-menu-item" id="navMype">👤 マイぺ（予約チケット確認）</div>
   </div>
 
@@ -113,170 +135,197 @@
   <div class="container">
     <!-- 予約エリア -->
     <div id="bookingSection">
-      <h1 style="color: var(--accent-color); font-size: 1.4rem; text-align: center; margin-bottom: 15px;">シアター予約</h1>
+      
+      <div class="hero-banner">
+        <h2>ワールドシネマ 予約システム</h2>
+        <p>リアルタイム空席状況更新中 | 混雑時はお早めにご予約ください</p>
+      </div>
 
       <div class="notice-box">
         <ul>
-          <li>現在、<strong>カラオケ機能は中止</strong>しており、映画鑑賞のみご利用可能です。</li>
-          <li>大画面シアターでお楽しみいただけます。</li>
-          <li class="warning">飲食の持込厳禁🈲</li>
+          <li>現在アクセス集中につき、一度に予約できる座席は<strong>最大3席まで</strong>となります。</li>
+          <li>飲食の持込厳禁🈲（館内フード＆ドリンクをご利用ください）</li>
         </ul>
       </div>
 
       <form id="bookingForm" action="https://script.google.com/macros/s/AKfycbzpVEW-hpe0KvTwL95tLKitS0IloZGkv0ToO9uK0DS2wByTh0kpxeKnX_YSTwNI3f6WxA/exec" method="POST" target="hidden_iframe">
+        
         <div class="form-group">
-          <label>お名前</label>
-          <input type="text" id="name" name="name" required placeholder="山田 太郎">
+          <label>① お名前</label>
+          <input type="text" id="name" name="name" required placeholder="例：山田 太郎">
         </div>
 
         <div class="form-group">
-          <label>鑑賞作品</label>
+          <label>② 上映作品</label>
           <select id="title" name="title" required>
-            <option value="ドラえもん">ドラえもん</option>
-            <option value="サザエさん">サザエさん</option>
-            <option value="ちびまる子ちゃん">ちびまる子ちゃん</option>
+            <option value="ドラえもん">ドラえもん (上映時間 110分)</option>
+            <option value="サザエさん">サザエさん (上映時間 90分)</option>
+            <option value="ちびまる子ちゃん">ちびまる子ちゃん (上映時間 95分)</option>
           </select>
         </div>
 
         <div class="form-group">
-          <label>ご来店日</label>
+          <label>③ ご鑑賞日</label>
           <input type="date" id="date" name="date" required>
         </div>
 
         <div class="form-group">
-          <label>時間帯 (30分単位・21:00まで)</label>
+          <label>④ 上映開始時間 (毎時設定)</label>
           <select id="time" name="time" required>
-            <option value="">時間を選択してください</option>
-            <option value="10:00">10:00</option>
-            <option value="10:30">10:30</option>
-            <option value="11:00">11:00</option>
-            <option value="11:30">11:30</option>
-            <option value="12:00">12:00</option>
-            <option value="12:30">12:30</option>
-            <option value="13:00">13:00</option>
-            <option value="13:30">13:30</option>
-            <option value="14:00">14:00</option>
-            <option value="14:30">14:30</option>
-            <option value="15:00">15:00</option>
-            <option value="15:30">15:30</option>
-            <option value="16:00">16:00</option>
-            <option value="16:30">16:30</option>
-            <option value="17:00">17:00</option>
-            <option value="17:30">17:30</option>
-            <option value="18:00">18:00</option>
-            <option value="18:30">18:30</option>
-            <option value="19:00">19:00</option>
-            <option value="19:30">19:30</option>
-            <option value="20:00">20:00</option>
-            <option value="20:30">20:30</option>
-            <option value="21:00">21:00</option>
+            <option value="">時間帯を選択してください</option>
+            <option value="10:00">10:00 上映</option>
+            <option value="11:00">11:00 上映</option>
+            <option value="12:00">12:00 上映</option>
+            <option value="13:00">13:00 上映</option>
+            <option value="14:00">14:00 上映</option>
+            <option value="15:00">15:00 上映</option>
+            <option value="16:00">16:00 上映</option>
+            <option value="17:00">17:00 上映</option>
+            <option value="18:00">18:00 上映</option>
+            <option value="19:00">19:00 上映</option>
+            <option value="20:00">20:00 上映</option>
+            <option value="21:00">21:00 上映</option>
           </select>
         </div>
 
         <div class="form-group">
-          <label>座席を選択（全4席）</label>
-          <div id="seatStatusMsg" class="seat-status-msg"></div>
+          <label>⑤ 座席選択（全6席 / 最大3席まで選択可）</label>
+          <div id="seatStatusMsg" class="seat-status-msg">※日時を選択してください</div>
           
           <div class="seat-legend">
-            <div class="legend-item"><div class="dot" style="background:var(--seat-available);"></div> 空席 (選択可)</div>
-            <div class="legend-item"><div class="dot" style="background:var(--seat-occupied);"></div> 予約済み (不可)</div>
+            <div class="legend-item"><div class="dot" style="background:var(--seat-available);"></div> 空席</div>
+            <div class="legend-item"><div class="dot" style="background:var(--seat-selected);"></div> 選択中</div>
+            <div class="legend-item"><div class="dot" style="background:var(--seat-occupied);"></div> 満席 (予約済)</div>
           </div>
+
+          <div class="screen-indicator">SCREEN</div>
 
           <div class="seats-grid">
             <button type="button" class="seat-btn" data-seat="A1">A1</button>
             <button type="button" class="seat-btn" data-seat="A2">A2</button>
             <button type="button" class="seat-btn" data-seat="A3">A3</button>
             <button type="button" class="seat-btn" data-seat="A4">A4</button>
+            <button type="button" class="seat-btn" data-seat="A5">A5</button>
+            <button type="button" class="seat-btn" data-seat="A6">A6</button>
           </div>
           <input type="hidden" id="selectedSeat" name="seat" required>
         </div>
 
-        <h2 class="option-title">ポップコーン</h2>
+        <!-- 軽食・フード -->
         <div class="form-group">
-          <select id="popcornFlavor">
+          <label>🍔 ホットスナック・軽食</label>
+          <select id="hotSnack">
             <option value="なし" data-price="0">なし</option>
-            <option value="塩" data-price="0">塩</option>
-            <option value="醤油バター(人気)" data-price="0">醤油バター ★人気</option>
-            <option value="キャラメル" data-price="0">キャラメル</option>
+            <option value="からあげ100" data-price="250">からあげ100 (250円)</option>
+            <option value="たつた100" data-price="270">たつた100 (270円)</option>
+            <option value="フランクフルト" data-price="230">フランクフルト (230円)</option>
           </select>
-          <select id="popcornSize" style="margin-top: 5px;">
-            <option value="S" data-price="150">Sサイズ (150円)</option>
-            <option value="R" data-price="180">Rサイズ (180円)</option>
-            <option value="RR" data-price="210">RRサイズ (210円)</option>
-            <option value="L" data-price="240">Lサイズ (240円)</option>
-          </select>
-          <input type="hidden" id="popcorn" name="popcorn">
         </div>
 
-        <h2 class="option-title">ドリンク</h2>
+        <!-- フード＆ドリンク注文形式 -->
         <div class="form-group">
-          <select id="drinkMenu">
-            <option value="なし" data-star="false">なし</option>
-            <option value="メロンソーダ" data-star="false">メロンソーダ</option>
-            <option value="サイダー" data-star="false">サイダー</option>
-            <option value="パイン" data-star="true">パイン ☆ (おかわり可)</option>
-            <option value="コーラ" data-star="false">コーラ</option>
-            <option value="ペプシ" data-star="false">ペプシ</option>
-            <option value="ソルティライチ" data-star="false">ソルティライチ</option>
+          <label>🍿 ドリンク・スナック形式</label>
+          <select id="menuType">
+            <option value="none">注文なし</option>
+            <option value="set">お得なセット (ドリンク + ポップコーンorジェラート)</option>
+            <option value="single">単品で購入</option>
           </select>
-          <select id="drinkSize" style="margin-top: 5px;">
-            <option value="S" data-price="120">Sサイズ (120円)</option>
-            <option value="M" data-price="150">Mサイズ (150円)</option>
-            <option value="L" data-price="170">Lサイズ (170円)</option>
-          </select>
-          <label style="margin-top: 8px; cursor: pointer; font-size: 0.85rem;">
-            <input type="checkbox" id="drinkRefill" style="width: auto;"> おかわり放題 (+80円) ※パイン☆限定
-          </label>
-          <input type="hidden" id="drink" name="drink">
         </div>
 
-        <h2 class="option-title">ジェラート</h2>
-        <div class="form-group">
-          <select id="gelatoFlavor">
-            <option value="なし">なし</option>
-            <option value="バニラ直">バニラ直</option>
-            <option value="チョコ">チョコ</option>
+        <!-- セット詳細選択 -->
+        <div id="setGroup" class="form-group" style="display: none; border-left: 3px solid var(--accent-gold);">
+          <label>🥤 [セット] ドリンク選択 (ALL 150円計算)</label>
+          <select id="setDrink">
+            <option value="メロンソーダ">メロンソーダ</option>
+            <option value="サイダー">サイダー</option>
+            <option value="コーラ">コーラ</option>
+            <option value="ペプシ">ペプシ</option>
           </select>
-          <select id="gelatoSize" style="margin-top: 5px;">
-            <option value="R" data-price="170">Rサイズ (170円)</option>
-            <option value="L" data-price="200">Lサイズ (200円)</option>
+
+          <label style="margin-top:10px;">🍿 [セット] スナック選択 (セット価格 +200円)</label>
+          <select id="setSnack">
+            <option value="ポップコーン(塩)">ポップコーン(塩)</option>
+            <option value="ポップコーン(キャラメル)">ポップコーン(キャラメル)</option>
+            <option value="ジェラート(バニラ直)">ジェラート(バニラ直)</option>
+            <option value="ジェラート(チョコ)">ジェラート(チョコ)</option>
           </select>
-          <input type="hidden" id="gelato" name="gelato">
         </div>
+
+        <!-- 単品詳細選択 -->
+        <div id="singleGroup" class="form-group" style="display: none; border-left: 3px solid var(--accent-color);">
+          <label>🍿 単品ポップコーン</label>
+          <select id="singlePopcorn">
+            <option value="なし" data-price="0">なし</option>
+            <option value="ポップコーン塩(S)" data-price="150">塩 (Sサイズ - 150円)</option>
+            <option value="ポップコーンキャラメル(R)" data-price="180">キャラメル (Rサイズ - 180円)</option>
+          </select>
+
+          <label style="margin-top:10px;">🥤 単品ドリンク</label>
+          <select id="singleDrink">
+            <option value="なし" data-price="0">なし</option>
+            <option value="メロンソーダ(M)" data-price="150">メロンソーダ (150円)</option>
+            <option value="コーラ(M)" data-price="150">コーラ (150円)</option>
+          </select>
+
+          <label style="margin-top:10px;">🍨 単品ジェラート</label>
+          <select id="singleGelato">
+            <option value="なし" data-price="0">なし</option>
+            <option value="ジェラートバニラ直" data-price="170">バニラ直 (170円)</option>
+            <option value="ジェラートチョコ" data-price="170">チョコ (170円)</option>
+          </select>
+        </div>
+
+        <!-- 隠し送信フィールド -->
+        <input type="hidden" id="popcorn" name="popcorn" value="なし">
+        <input type="hidden" id="drink" name="drink" value="なし">
+        <input type="hidden" id="gelato" name="gelato" value="なし">
 
         <div class="total-area">
-          合計金額: <span id="totalPrice" class="price-tag">0</span> 円
+          <div class="price-breakdown" id="priceBreakdown"></div>
+          <div>合計金額: <span id="totalPrice" class="total-price">0</span> 円</div>
           <input type="hidden" id="totalPriceInput" name="totalPrice" value="0">
         </div>
 
-        <button type="submit" id="submitBtn" class="submit-btn">予約を確定する</button>
+        <button type="submit" id="submitBtn" class="submit-btn">上記の内容で予約を完了する</button>
       </form>
     </div>
 
     <!-- マイぺエリア -->
     <div id="mypeSection" style="display: none;">
-      <h1 style="color: var(--accent-color); font-size: 1.4rem; text-align: center;">マイぺ (予約確認)</h1>
+      <h1 style="color: var(--accent-gold); font-size: 1.4rem; text-align: center;">👤 マイぺ (予約チケット確認)</h1>
+      
       <div id="ticketArea" class="ticket-card">
-        <h2>🎟️ 入場用予約チケット</h2>
+        <h2>🎟️ WORLD CINEMA 発券システム</h2>
         
-        <!-- 手動・再生成ボタン -->
-        <button type="button" id="generateQrBtn" style="
-          background: var(--accent-color);
-          color: white;
-          border: none;
-          padding: 10px 18px;
-          font-weight: bold;
-          border-radius: 6px;
-          cursor: pointer;
-          margin: 10px 0 15px 0;
-          font-size: 0.9rem;
-        ">
-          📱 QRコードを表示・再生成
-        </button>
+        <div id="ticketDetails" style="text-align: left; margin-bottom: 15px;"></div>
 
-        <div id="qrcode"></div>
-        <div class="ticket-info" id="ticketDetails"></div>
+        <div id="qrSection">
+          <!-- 上映3時間前用ロック表示 / 発券ボタン -->
+          <div id="qrLockBox">
+            <div id="lockNotice" class="lock-notice" style="margin-bottom: 10px; display:none;">
+              ⚠️ QRコードは上映3時間前になると発行可能です。
+            </div>
+            
+            <button type="button" id="getQrBtn" style="
+              background: #2563eb; color: white; border: none; padding: 12px 20px;
+              font-weight: bold; border-radius: 6px; cursor: pointer; font-size: 1rem;
+            ">
+              🌀 上映チケットQR取得
+            </button>
+          </div>
+
+          <!-- 読み込みアニメーション -->
+          <div class="spinner" id="spinner"></div>
+          <div class="progress-bar-container" id="progressContainer">
+            <div class="progress-bar" id="progressBar"></div>
+          </div>
+          <div id="progressText" style="font-weight: bold; font-size: 0.9rem; margin-bottom: 10px;"></div>
+
+          <!-- 生成されたQRコード -->
+          <div id="qrcode"></div>
+        </div>
       </div>
+
       <div id="noTicketMsg" style="display:none; text-align:center; padding: 30px; color: var(--text-muted);">
         現在、保存されている予約チケットはありません。
       </div>
@@ -286,18 +335,26 @@
 <script>
   const GAS_URL = "https://script.google.com/macros/s/AKfycbzpVEW-hpe0KvTwL95tLKitS0IloZGkv0ToO9uK0DS2wByTh0kpxeKnX_YSTwNI3f6WxA/exec";
 
-  let allReservations = [];
+  let selectedSeats = [];
   let submittedPayload = null;
 
+  // UI制御
   const sidebar = document.getElementById('sidebar');
   const overlay = document.getElementById('overlay');
-  const openMenuBtn = document.getElementById('openMenuBtn');
-  const closeMenuBtn = document.getElementById('closeMenuBtn');
-  const navHome = document.getElementById('navHome');
-  const navMype = document.getElementById('navMype');
   const bookingSection = document.getElementById('bookingSection');
   const mypeSection = document.getElementById('mypeSection');
-  const seatStatusMsg = document.getElementById('seatStatusMsg');
+
+  document.getElementById('openMenuBtn').addEventListener('click', () => toggleMenu(true));
+  document.getElementById('closeMenuBtn').addEventListener('click', () => toggleMenu(false));
+  overlay.addEventListener('click', () => toggleMenu(false));
+
+  function toggleMenu(show) {
+    sidebar.classList.toggle('open', show);
+    overlay.classList.toggle('show', show);
+  }
+
+  document.getElementById('navHome').addEventListener('click', () => { showSection('home'); toggleMenu(false); });
+  document.getElementById('navMype').addEventListener('click', () => { showSection('mype'); toggleMenu(false); });
 
   function showSection(section) {
     if (section === 'mype') {
@@ -310,152 +367,170 @@
     }
   }
 
-  function toggleMenu(show) {
-    sidebar.classList.toggle('open', show);
-    overlay.classList.toggle('show', show);
-  }
-
-  openMenuBtn.addEventListener('click', () => toggleMenu(true));
-  closeMenuBtn.addEventListener('click', () => toggleMenu(false));
-  overlay.addEventListener('click', () => toggleMenu(false));
-
-  navHome.addEventListener('click', () => { showSection('home'); toggleMenu(false); });
-  navMype.addEventListener('click', () => { showSection('mype'); toggleMenu(false); });
-
-  const seatBtns = document.querySelectorAll('.seat-btn');
-  const selectedSeatInput = document.getElementById('selectedSeat');
+  // 日付初期設定（本日）
   const dateInput = document.getElementById('date');
-  const timeInput = document.getElementById('time');
-
   dateInput.value = new Date().toISOString().split('T')[0];
 
+  const timeInput = document.getElementById('time');
+  const seatBtns = document.querySelectorAll('.seat-btn');
+  const seatStatusMsg = document.getElementById('seatStatusMsg');
+
+  // 日時変更時に「混雑アピール（疑似ランダム予約）」を発生させる
+  dateInput.addEventListener('change', updateSeatOccupancy);
+  timeInput.addEventListener('change', updateSeatOccupancy);
+
+  // 擬似ランダムで毎時間2〜6個を自動予約済みにする関数
+  function updateSeatOccupancy() {
+    const dVal = dateInput.value;
+    const tVal = timeInput.value;
+
+    selectedSeats = [];
+    document.getElementById('selectedSeat').value = "";
+    seatBtns.forEach(b => {
+      b.classList.remove('selected');
+      b.disabled = false;
+    });
+
+    if (!dVal || !tVal) {
+      seatStatusMsg.textContent = "※日時を選択してください";
+      return;
+    }
+
+    // 日付＋時間から固定シード値を生成してランダム風に計算
+    let seedStr = dVal + "_" + tVal;
+    let seed = 0;
+    for (let i = 0; i < seedStr.length; i++) {
+      seed += seedStr.charCodeAt(i);
+    }
+
+    // 毎時間 2〜5席（たまに6席満席）が埋まる演出
+    let occupiedCount = (seed % 4) + 2; 
+    let seatIndices = [0, 1, 2, 3, 4, 5];
+    
+    // シャッフル
+    for (let i = seatIndices.length - 1; i > 0; i--) {
+      let j = (seed * (i + 1)) % (i + 1);
+      [seatIndices[i], seatIndices[j]] = [seatIndices[j], seatIndices[i]];
+    }
+
+    let occupiedSeats = seatIndices.slice(0, occupiedCount);
+    occupiedSeats.forEach(idx => {
+      seatBtns[idx].disabled = true;
+    });
+
+    seatStatusMsg.textContent = `残り空席: ${6 - occupiedCount}席（現在アクセスが集中しています）`;
+    calculateTotal();
+  }
+
+  // 座席選択処理（最大3席）
   seatBtns.forEach(btn => {
     btn.addEventListener('click', () => {
-      if(btn.disabled) return;
-      seatBtns.forEach(b => b.classList.remove('selected'));
-      btn.classList.add('selected');
-      selectedSeatInput.value = btn.dataset.seat;
+      if (btn.disabled) return;
+      const seat = btn.dataset.seat;
+
+      if (selectedSeats.includes(seat)) {
+        selectedSeats = selectedSeats.filter(s => s !== seat);
+        btn.classList.remove('selected');
+      } else {
+        if (selectedSeats.length >= 3) {
+          alert("一度に予約できるのは最大3席までです。");
+          return;
+        }
+        selectedSeats.push(seat);
+        btn.classList.add('selected');
+      }
+
+      document.getElementById('selectedSeat').value = selectedSeats.join(', ');
       calculateTotal();
     });
   });
 
-  // 最新の空席状況を画面に反映
-  function updateSeatAvailability() {
-    const selectedDate = dateInput.value;
-    const selectedTime = timeInput.value;
+  // メニュー切り替えUI
+  const menuType = document.getElementById('menuType');
+  const setGroup = document.getElementById('setGroup');
+  const singleGroup = document.getElementById('singleGroup');
 
-    seatBtns.forEach(b => {
-      b.disabled = false;
-      b.classList.remove('selected');
-    });
-    selectedSeatInput.value = "";
-
-    if (!selectedDate || !selectedTime) {
-      seatStatusMsg.textContent = "※日時を選択すると最新の空席状況が表示されます";
-      return;
-    }
-
-    let occupiedCount = 0;
-    allReservations.forEach(res => {
-      if (res.date === selectedDate && res.time === selectedTime) {
-        const btn = document.querySelector(`.seat-btn[data-seat="${res.seat}"]`);
-        if (btn) {
-          btn.disabled = true;
-          occupiedCount++;
-        }
-      }
-    });
-
-    seatStatusMsg.textContent = `空席状況を取得しました（予約済み: ${occupiedCount}席）`;
-  }
-
-  // GASからリアルタイム同期
-  function fetchReservations() {
-    seatStatusMsg.textContent = "⌛ 最新の空席情報を取得中...";
-    
-    const oldScript = document.getElementById('gas-script');
-    if (oldScript) oldScript.remove();
-
-    const script = document.createElement('script');
-    script.id = 'gas-script';
-    script.src = `${GAS_URL}?callback=handleGasResponse&_=` + new Date().getTime();
-    document.body.appendChild(script);
-  }
-
-  window.handleGasResponse = function(data) {
-    if (data && data.reservations) {
-      allReservations = data.reservations;
-      updateSeatAvailability();
-    } else {
-      seatStatusMsg.textContent = "空席情報の取得に失敗しました。";
-    }
-  };
-
-  dateInput.addEventListener('change', fetchReservations);
-  timeInput.addEventListener('change', fetchReservations);
-
-  function calculateTotal() {
-    let total = 0;
-
-    const popFlavor = document.getElementById('popcornFlavor').value;
-    if (popFlavor !== "なし") {
-      const popSize = document.getElementById('popcornSize');
-      total += parseInt(popSize.options[popSize.selectedIndex].dataset.price);
-    }
-
-    const drinkMenu = document.getElementById('drinkMenu');
-    const isStar = drinkMenu.options[drinkMenu.selectedIndex].dataset.star === "true";
-    const refillCheckbox = document.getElementById('drinkRefill');
-
-    refillCheckbox.disabled = !isStar;
-    if (!isStar) refillCheckbox.checked = false;
-
-    if (drinkMenu.value !== "なし") {
-      const drinkSize = document.getElementById('drinkSize');
-      total += parseInt(drinkSize.options[drinkSize.selectedIndex].dataset.price);
-      if (refillCheckbox.checked) total += 80;
-    }
-
-    const gelatoFlavor = document.getElementById('gelatoFlavor').value;
-    if (gelatoFlavor !== "なし") {
-      const gelatoSize = document.getElementById('gelatoSize');
-      total += parseInt(gelatoSize.options[gelatoSize.selectedIndex].dataset.price);
-    }
-
-    document.getElementById('totalPrice').textContent = total;
-    document.getElementById('totalPriceInput').value = total;
-
-    document.getElementById('popcorn').value = `${document.getElementById('popcornFlavor').value} (${document.getElementById('popcornSize').value})`;
-    document.getElementById('drink').value = `${document.getElementById('drinkMenu').value} (${document.getElementById('drinkSize').value}) ${document.getElementById('drinkRefill').checked ? '+おかわり' : ''}`;
-    document.getElementById('gelato').value = `${document.getElementById('gelatoFlavor').value} (${document.getElementById('gelatoSize').value})`;
-
-    return total;
-  }
-
-  document.querySelectorAll('select, input').forEach(el => {
-    el.addEventListener('change', calculateTotal);
+  menuType.addEventListener('change', () => {
+    setGroup.style.display = menuType.value === 'set' ? 'block' : 'none';
+    singleGroup.style.display = menuType.value === 'single' ? 'block' : 'none';
+    calculateTotal();
   });
 
-  // 送信処理
+  // 計算処理
+  function calculateTotal() {
+    let seatCount = selectedSeats.length;
+    let basePricePerSeat = 200; // 閲覧料
+    let discountPerSeat = 180;  // 初回割引×2 = 180円引
+
+    let seatTotal = seatCount * (basePricePerSeat - discountPerSeat); // 実質1席20円
+
+    let foodTotal = 0;
+
+    // ホットスナック
+    const snackEl = document.getElementById('hotSnack');
+    foodTotal += parseInt(snackEl.options[snackEl.selectedIndex].dataset.price);
+
+    // セット or 単品
+    let popStr = "なし", drinkStr = "なし", gelatoStr = "なし";
+
+    if (menuType.value === 'set') {
+      foodTotal += 350; // セット価格
+      drinkStr = document.getElementById('setDrink').value + " (セット)";
+      popStr = document.getElementById('setSnack').value + " (セット)";
+    } else if (menuType.value === 'single') {
+      const sp = document.getElementById('singlePopcorn');
+      const sd = document.getElementById('singleDrink');
+      const sg = document.getElementById('singleGelato');
+
+      foodTotal += parseInt(sp.options[sp.selectedIndex].dataset.price);
+      foodTotal += parseInt(sd.options[sd.selectedIndex].dataset.price);
+      foodTotal += parseInt(sg.options[sg.selectedIndex].dataset.price);
+
+      popStr = sp.value;
+      drinkStr = sd.value;
+      gelatoStr = sg.value;
+    }
+
+    document.getElementById('popcorn').value = popStr;
+    document.getElementById('drink').value = drinkStr;
+    document.getElementById('gelato').value = gelatoStr;
+
+    let grandTotal = seatTotal + foodTotal;
+
+    // 内訳のテキスト表示
+    document.getElementById('priceBreakdown').innerHTML = `
+      閲覧料 (200円) × ${seatCount}席<br>
+      <span class="discount-tag">初回特別割引 (-180円/席) 適用中</span><br>
+      フード・ドリンク計: ${foodTotal}円
+    `;
+
+    document.getElementById('totalPrice').textContent = grandTotal;
+    document.getElementById('totalPriceInput').value = grandTotal;
+
+    return grandTotal;
+  }
+
+  document.querySelectorAll('select').forEach(s => s.addEventListener('change', calculateTotal));
+
+  // 予約送信
   document.getElementById('bookingForm').addEventListener('submit', function(e) {
-    if (!selectedSeatInput.value) {
+    if (selectedSeats.length === 0) {
       e.preventDefault();
       alert("座席を選択してください。");
       return;
     }
 
-    calculateTotal();
-
     const submitBtn = document.getElementById('submitBtn');
     submitBtn.disabled = true;
-    submitBtn.textContent = "送信中...";
+    submitBtn.textContent = "予約処理中...";
 
     submittedPayload = {
       name: document.getElementById('name').value,
       title: document.getElementById('title').value,
       date: dateInput.value,
       time: timeInput.value,
-      seat: selectedSeatInput.value,
+      seat: selectedSeats.join(', '),
+      snack: document.getElementById('hotSnack').value,
       popcorn: document.getElementById('popcorn').value,
       drink: document.getElementById('drink').value,
       gelato: document.getElementById('gelato').value,
@@ -465,54 +540,21 @@
 
   document.getElementById('hidden_iframe').addEventListener('load', function() {
     if (submittedPayload) {
-      localStorage.setItem("cinema_ticket", JSON.stringify(submittedPayload));
-      alert("予約が正常に完了しました！");
+      localStorage.setItem("world_cinema_ticket", JSON.stringify(submittedPayload));
+      alert("予約が正常に完了しました！マイページへ遷移します。");
       
       const submitBtn = document.getElementById('submitBtn');
       submitBtn.disabled = false;
-      submitBtn.textContent = "予約を確定する";
+      submitBtn.textContent = "上記の内容で予約を完了する";
       
       submittedPayload = null;
       showSection('mype');
-      fetchReservations();
     }
   });
 
-  // 100%描画されるQR生成ロジック（ボタン＋フォールバックAPI付き）
-  document.getElementById('generateQrBtn').addEventListener('click', generateQRCode);
-
-  function generateQRCode() {
-    const savedTicket = localStorage.getItem("cinema_ticket");
-    if (!savedTicket) return;
-
-    const ticket = JSON.parse(savedTicket);
-    const qrcodeContainer = document.getElementById('qrcode');
-    qrcodeContainer.innerHTML = "";
-
-    const qrText = `[KARAOKE CINEMA TICKET]\nNAME:${ticket.name}\nTITLE:${ticket.title}\nDATE:${ticket.date}\nTIME:${ticket.time}\nSEAT:${ticket.seat}\nPRICE:${ticket.totalPrice}`;
-
-    // ライブラリで生成
-    if (typeof QRCode !== 'undefined') {
-      try {
-        new QRCode(qrcodeContainer, {
-          text: qrText,
-          width: 170,
-          height: 170
-        });
-        return;
-      } catch (e) {
-        console.warn("JSライブラリでの生成に失敗したためAPIに切り替えます", e);
-      }
-    }
-
-    // バックアップ用外部API（ライブラリ読み込み失敗時も確実に表示）
-    const encodedText = encodeURIComponent(qrText);
-    const apiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=170x170&data=${encodedText}`;
-    qrcodeContainer.innerHTML = `<img src="${apiUrl}" alt="予約QRコード" style="width:170px; height:170px;">`;
-  }
-
+  // --- マイページ & アニメーションQR生成ロジック ---
   function loadSavedTicket() {
-    const savedTicket = localStorage.getItem("cinema_ticket");
+    const savedTicket = localStorage.getItem("world_cinema_ticket");
     const ticketArea = document.getElementById('ticketArea');
     const noTicketMsg = document.getElementById('noTicketMsg');
 
@@ -526,24 +568,100 @@
     noTicketMsg.style.display = 'none';
 
     const ticket = JSON.parse(savedTicket);
-    const detailsContainer = document.getElementById('ticketDetails');
-
-    detailsContainer.innerHTML = `
-      <p><strong>お名前:</strong> ${ticket.name} 様</p>
-      <p><strong>鑑賞作品:</strong> ${ticket.title}</p>
-      <p><strong>日時:</strong> ${ticket.date} ${ticket.time}</p>
-      <p><strong>座席:</strong> <span style="font-size:1.3rem; font-weight:bold; color:#ff2a5f;">${ticket.seat}</span></p>
-      <p><strong>フード:</strong> ${ticket.popcorn}</p>
+    document.getElementById('ticketDetails').innerHTML = `
+      <p><strong>ご予約者:</strong> ${ticket.name} 様</p>
+      <p><strong>作品:</strong> ${ticket.title}</p>
+      <p><strong>日時:</strong> ${ticket.date} ${ticket.time}~</p>
+      <p><strong>座席:</strong> <span style="font-size:1.2rem; font-weight:bold; color:#1f51ff;">${ticket.seat}</span></p>
+      <p><strong>ホットスナック:</strong> ${ticket.snack}</p>
       <p><strong>ドリンク:</strong> ${ticket.drink}</p>
-      <p><strong>ジェラート:</strong> ${ticket.gelato}</p>
-      <p><strong>合計金額:</strong> ${ticket.totalPrice} 円</p>
+      <p><strong>ポップコーン/他:</strong> ${ticket.popcorn}</p>
+      <p><strong>お支払合計:</strong> ${ticket.totalPrice} 円</p>
     `;
 
-    generateQRCode();
+    // 3時間前判定ロジック
+    checkTimeLock(ticket.date, ticket.time);
+  }
+
+  function checkTimeLock(ticketDateStr, ticketTimeStr) {
+    const lockNotice = document.getElementById('lockNotice');
+    const getQrBtn = document.getElementById('getQrBtn');
+    
+    // 現在時刻と上映時刻の比較
+    const showTime = new Date(`${ticketDateStr}T${ticketTimeStr}:00`);
+    const now = new Date();
+    const diffHours = (showTime - now) / (1000 * 60 * 60);
+
+    // 3時間以上前の場合はボタンを制御（※体験用にボタン自体は押せるようにしつつ注意書きを出します）
+    if (diffHours > 3) {
+      lockNotice.style.display = 'block';
+    } else {
+      lockNotice.style.display = 'none';
+    }
+  }
+
+  // 🌀 ぐるぐるアニメーション(100%)付きQR発行ボタン
+  document.getElementById('getQrBtn').addEventListener('click', startQrGenerationAnimation);
+
+  function startQrGenerationAnimation() {
+    const getQrBtn = document.getElementById('getQrBtn');
+    const spinner = document.getElementById('spinner');
+    const progressContainer = document.getElementById('progressContainer');
+    const progressBar = document.getElementById('progressBar');
+    const progressText = document.getElementById('progressText');
+    const qrcodeContainer = document.getElementById('qrcode');
+
+    // 初期化
+    qrcodeContainer.innerHTML = "";
+    getQrBtn.style.display = 'none';
+    spinner.style.display = 'block';
+    progressContainer.style.display = 'block';
+
+    let progress = 0;
+    const interval = setInterval(() => {
+      progress += 4; // スピード調整
+      if (progress > 100) progress = 100;
+
+      progressBar.style.width = `${progress}%`;
+      progressText.textContent = `チケット暗号化処理中... ${progress}%`;
+
+      if (progress >= 100) {
+        clearInterval(interval);
+        setTimeout(() => {
+          spinner.style.display = 'none';
+          progressContainer.style.display = 'none';
+          progressText.textContent = "✅ 発券完了";
+          renderQRCode();
+        }, 300);
+      }
+    }, 50);
+  }
+
+  function renderQRCode() {
+    const savedTicket = localStorage.getItem("world_cinema_ticket");
+    if (!savedTicket) return;
+    const ticket = JSON.parse(savedTicket);
+
+    const qrcodeContainer = document.getElementById('qrcode');
+    qrcodeContainer.innerHTML = "";
+
+    const qrText = `[WORLD CINEMA]\nNAME:${ticket.name}\nTITLE:${ticket.title}\nDATE:${ticket.date}\nTIME:${ticket.time}\nSEAT:${ticket.seat}`;
+
+    // ライブラリで出力
+    if (typeof QRCode !== 'undefined') {
+      try {
+        new QRCode(qrcodeContainer, { text: qrText, width: 170, height: 170 });
+        return;
+      } catch (e) {}
+    }
+
+    // フォールバックAPI
+    const encodedText = encodeURIComponent(qrText);
+    qrcodeContainer.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=170x170&data=${encodedText}" alt="QR">`;
   }
 
   window.addEventListener('DOMContentLoaded', () => {
-    fetchReservations();
+    updateSeatOccupancy();
   });
 </script>
 
